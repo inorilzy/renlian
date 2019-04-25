@@ -214,18 +214,7 @@ class Model:
         return result[0]
 
 
-# if __name__ == '__main__':
-#     dataset = Dataset('C:\\Users\\84810\\Desktop\\csdn_renlian')
-#     dataset.load()
-#     model = Model()
-#     model.build_model(dataset)
-#
-#     # 先前添加的测试build_model()函数的代码
-#     model.build_model(dataset)
-#
-#     # 测试训练函数的代码
-#     model.train(dataset)
-#
+
 if __name__ == '__main__':
     dataset = Dataset('./data/')
     dataset.load()
@@ -234,15 +223,6 @@ if __name__ == '__main__':
     model.train(dataset)
     model.save_model(file_path='./model/face.model')
     model.evaluate(dataset)
-#
-# if __name__ == '__main__':
-#     dataset = Dataset('./data/')
-#     dataset.load()
-#
-#     # 评估模型
-#     model = Model()
-#     model.load_model(file_path='./model/face.model')
-#
 
 
 
