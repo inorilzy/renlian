@@ -3,7 +3,7 @@ import sys
 import cv2
 
 
-def CatchPICFromVideo(window_name, camera_idx, catch_pic_num, path_name):
+def CatchPICFromVideo(path_name, window_name="GET_FACE", camera_idx=0, catch_pic_num=1000):
     cv2.namedWindow(window_name)
 
     # 视频来源，可以来自一段已存好的视频，也可以直接来自USB摄像头
@@ -18,6 +18,7 @@ def CatchPICFromVideo(window_name, camera_idx, catch_pic_num, path_name):
     num = 0
     while cap.isOpened():
         ok, frame = cap.read()  # 读取一帧数据
+        print(type(frame))
         if not ok:
             break
 
@@ -60,7 +61,4 @@ def CatchPICFromVideo(window_name, camera_idx, catch_pic_num, path_name):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 1:
-        print("Usage:%s camera_id face_num_max path_name\r\n" % (sys.argv[0]))
-    else:
-        CatchPICFromVideo("GET_FACE", 0, 300, 'C:\\Users\\84810\\Desktop\\csdn_renlian\\data\\yzz')
+    CatchPICFromVideo('C:\\Users\\84810\\Desktop\\csdn_renlian\\data\\yzz')

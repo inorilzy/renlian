@@ -1,23 +1,16 @@
 import random
 
-import numpy as np
-from sklearn.model_selection import train_test_split
-from keras.preprocessing.image import ImageDataGenerator
-from keras.models import Sequential
-from keras.layers import Dense, Dropout, Activation, Flatten
-from keras.layers import Convolution2D, MaxPooling2D
-from keras.optimizers import SGD
-from keras.utils import np_utils
-from keras.models import load_model
 from keras import backend as K
+from keras.layers import Convolution2D, MaxPooling2D
+from keras.layers import Dense, Dropout, Activation, Flatten
+from keras.models import Sequential
+from keras.models import load_model
+from keras.optimizers import SGD
+from keras.preprocessing.image import ImageDataGenerator
+from keras.utils import np_utils
+from sklearn.model_selection import train_test_split
 
 from load_data import load_dataset, resize_image, IMAGE_SIZE
-# import keras.backend.tensorflow_backend as KTF
-#
-# config = tf.ConfigProto()
-# config.gpu_options.allow_growth=True
-# session = tf.Session(config=config)
-# KTF.set_session(session)
 
 
 class Dataset:
@@ -40,11 +33,14 @@ class Dataset:
         # 当前库采用的维度顺序
         self.input_shape = None
 
+        self.nb_classes = None
+
     # 加载数据集并按照交叉验证的原则划分数据集并进行相关预处理工作
     def load(self, img_rows=IMAGE_SIZE, img_cols=IMAGE_SIZE,
-             img_channels=3, nb_classes=2):
+             img_channels=3):
         # 加载数据集到内存
-        images, labels = load_dataset(self.path_name)
+        images, labels, face_num = load_dataset(self.path_name)
+        self.nb_classes = face_num
 
         train_images, valid_images, train_labels, valid_labels = train_test_split(images, labels, test_size=0.3,
                                                                                   random_state=random.randint(0, 100))
@@ -69,11 +65,13 @@ class Dataset:
             print(valid_images.shape[0], 'valid samples')
             print(test_images.shape[0], 'test samples')
 
-            # 我们的模型使用categorical_crossentropy作为损失函数，因此需要根据类别数量nb_classes将
-            # 类别标签进行one-hot编码使其向量化，在这里我们的类别只有两种，经过转化后标签数据变为二维
-            train_labels = np_utils.to_categorical(train_labels, nb_classes)
-            valid_labels = np_utils.to_categorical(valid_labels, nb_classes)
-            test_labels = np_utils.to_categorical(test_labels, nb_classes)
+            '''
+            我们的模型使用categorical_crossentropy作为损失函数，因此需要根据类别数量nb_classes将
+            类别标签进行one-hot编码使其向量化，在这里我们的类别只有两种，经过转化后标签数据变为二维
+            '''
+            train_labels = np_utils.to_categorical(train_labels, self.nb_classes)
+            valid_labels = np_utils.to_categorical(valid_labels, self.nb_classes)
+            test_labels = np_utils.to_categorical(test_labels, self.nb_classes)
 
             # 像素数据浮点化以便归一化
             train_images = train_images.astype('float32')
@@ -100,13 +98,13 @@ class Model:
 
         # 建立模型
 
-    def build_model(self, dataset, nb_classes=2):
+    def build_model(self, dataset, nb_classes=5):
         # 构建一个空的网络模型，它是一个线性堆叠模型，各神经网络层会被顺序添加，专业名称为序贯模型或线性堆叠模型
         self.model = Sequential()
 
         # 以下代码将顺序添加CNN网络需要的各层，一个add就是一个网络层
         self.model.add(Convolution2D(32, 3, 3, border_mode='same',
-                                     input_shape=dataset.input_shape))  # 1 2维卷积层
+                                     input_shape=dataset.input_shape))  # 1 2维卷积层 卷积核 个数，大小，步长
         self.model.add(Activation('relu'))  # 2 激活函数层
 
         self.model.add(Convolution2D(32, 3, 3))  # 3 2维卷积层
@@ -136,7 +134,7 @@ class Model:
 
     # 训练模型
     def train(self, dataset, batch_size=20, nb_epoch=10, data_augmentation=True):
-        sgd = SGD(lr=0.01, decay=1e-6,
+        sgd = SGD(lr=0.0007, decay=1e-6,
                   momentum=0.9, nesterov=True)  # 采用SGD+momentum的优化器进行训练，首先生成一个优化器对象
         self.model.compile(loss='categorical_crossentropy',
                            optimizer=sgd,
@@ -203,26 +201,22 @@ class Model:
         image = image.astype('float32')
         image /= 255
 
-        # 给出输入属于各个类别的概率，我们是二值类别，则该函数会给出输入图像属于0和1的概率各为多少
-        result = self.model.predict_proba(image)
-        print('result:', result)
+        # 给出输入属于各个类别的概率
+        result_probability = self.model.predict_proba(image)
+        print('result:', result_probability, max(result_probability[0]))
 
-        # 给出类别预测：0或者1
+        # 给出类别预测：0-9
         result = self.model.predict_classes(image)
 
         # 返回类别预测结果
-        return result[0]
-
+        return max(result_probability[0]),result[0]
 
 
 if __name__ == '__main__':
     dataset = Dataset('./data/')
     dataset.load()
     model = Model()
-    model.build_model(dataset)
+    model.build_model(dataset, dataset.nb_classes)
     model.train(dataset)
     model.save_model(file_path='./model/face.model')
     model.evaluate(dataset)
-
-
-
